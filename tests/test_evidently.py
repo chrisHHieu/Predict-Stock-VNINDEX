@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-pytest.importorskip("evidently")
+try:
+    import evidently  # noqa: F401
+except Exception as error:  # noqa: BLE001 - evidently 0.7 imports pandas internals
+    pytest.skip(f"evidently does not import against this pandas: {error}", allow_module_level=True)
 
 from conftest import make_config, make_prices  # noqa: E402
 

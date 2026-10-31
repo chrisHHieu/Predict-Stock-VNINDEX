@@ -61,8 +61,14 @@ def test_predict_returns_a_probability(service):
     assert body["p_up"] == body["probability_up"]
     assert body["interval_80"]["low"] < body["interval_80"]["high"]
     assert body["interval_80"]["coverage"] == 0.8
-    assert len(body["top_reasons"]) == 3
-    assert {"feature", "value", "shap", "effect"} <= set(body["top_reasons"][0])
+    import importlib.util
+
+    if importlib.util.find_spec("shap") is None:
+        # The core install has no SHAP; the endpoint still answers, without reasons.
+        assert body["top_reasons"] == []
+    else:
+        assert len(body["top_reasons"]) == 3
+        assert {"feature", "value", "shap", "effect"} <= set(body["top_reasons"][0])
 
 
 def test_batch_predict(service):

@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import pytest
 import yaml
 from conftest import make_config, make_prices, materialise
 
-from vnindex_forecast.config import load_config
-from vnindex_forecast.tuning.search import tune, validation_windows
+pytest.importorskip("optuna")
+
+from vnindex_forecast.config import load_config  # noqa: E402
+from vnindex_forecast.tuning.search import tune, validation_windows  # noqa: E402
 
 
 def test_search_windows_stay_before_walk_forward(tmp_path):
