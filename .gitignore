@@ -1,19 +1,28 @@
 # Data is fetched, never committed
 data/raw/*
 !data/raw/.gitkeep
+!data/raw/*.dvc
 data/processed/*
 !data/processed/.gitkeep
+!data/processed/*.dvc
 
 # Reports and model artifacts are produced by the pipeline.
 # Metrics, drift and figures are committed so the README numbers can be checked.
 reports/*
 !reports/.gitkeep
 !reports/metrics.json
+!reports/method_comparison.json
+!reports/confusion.json
 !reports/drift.json
 !reports/figures/
 reports/figures/*
 !reports/figures/*.png
 /models/
+mlruns/
+mlflow.db
+.dvc/cache/
+.dvc/tmp/
+.dvc/plots/
 catboost_info/
 lightgbm_log.txt
 

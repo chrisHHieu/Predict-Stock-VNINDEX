@@ -42,6 +42,10 @@ def test_health_and_model_info(service):
     assert body["feature_count"] == len(body["features"])
     assert "metrics" in body
 
+    alias = client.get("/model-info")
+    assert alias.status_code == 200
+    assert alias.json()["version"] == body["version"]
+
 
 def test_predict_returns_a_probability(service):
     client, _, result, prices = service
@@ -54,6 +58,11 @@ def test_predict_returns_a_probability(service):
     assert body["threshold"] == result.artifact.threshold
     assert body["bars_used"] == 60
     assert isinstance(body["predicted_next_return"], float)
+    assert body["p_up"] == body["probability_up"]
+    assert body["interval_80"]["low"] < body["interval_80"]["high"]
+    assert body["interval_80"]["coverage"] == 0.8
+    assert len(body["top_reasons"]) == 3
+    assert {"feature", "value", "shap", "effect"} <= set(body["top_reasons"][0])
 
 
 def test_batch_predict(service):

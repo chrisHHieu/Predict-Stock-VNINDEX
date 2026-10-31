@@ -20,7 +20,10 @@ import pandas as pd
 from vnindex_forecast.config import AppConfig
 from vnindex_forecast.features.build import feature_columns, load_or_build_features
 from vnindex_forecast.models import registry
+from vnindex_forecast.models.conformal import fit_served_interval
 from vnindex_forecast.models.evaluate import (
+    _plot_calibration,
+    _plot_equity,
     choose_threshold,
     compute_data_sha256,
     compute_metrics,
@@ -35,6 +38,7 @@ class TrainResult:
     artifact: registry.Artifact
     metrics: dict[str, Any]
     predictions: pd.DataFrame
+    tracking: dict[str, Any] | None = None
 
 
 def select_served_threshold(features: pd.DataFrame, config: AppConfig) -> float:
@@ -55,7 +59,9 @@ def select_served_threshold(features: pd.DataFrame, config: AppConfig) -> float:
     return choose_threshold(probabilities, hold_part["next_return"].to_numpy(), config)
 
 
-def train(config: AppConfig, rebuild_features: bool = False) -> TrainResult:
+def train(
+    config: AppConfig, rebuild_features: bool = False, track: bool = False
+) -> TrainResult:
     """Run the backtest, fit the final models and register the artifact."""
     features = load_or_build_features(config, rebuild=rebuild_features)
     names = feature_columns(config)
@@ -73,9 +79,12 @@ def train(config: AppConfig, rebuild_features: bool = False) -> TrainResult:
     regressor = build_regressor(config, names)
     regressor.fit(labelled[names], labelled["next_return"].astype(float))
 
+    interval = fit_served_interval(labelled, config)
+
     payload = {
         "classifier": classifier,
         "regressor": regressor,
+        "conformal_interval": interval,
         "feature_names": names,
         "threshold": float(threshold),
         "window_bars": int(config.features.min_history),
@@ -101,6 +110,11 @@ def train(config: AppConfig, rebuild_features: bool = False) -> TrainResult:
             "min_train_rows": config.model.walk_forward.min_train_rows,
             "refit_every": config.model.walk_forward.refit_every,
             "folds": walk_forward.folds,
+        },
+        "conformal": {
+            "alpha": float(config.model.conformal.alpha),
+            "calibration_rows": interval.calibration_rows,
+            "adjustment": round(interval.adjustment, 8),
         },
         "training_window": {
             "first": pd.Timestamp(labelled["date"].min()).date().isoformat(),
@@ -128,4 +142,34 @@ def train(config: AppConfig, rebuild_features: bool = False) -> TrainResult:
         json.dumps(metrics, indent=2), encoding="utf-8"
     )
 
-    return TrainResult(artifact=artifact, metrics=metrics, predictions=walk_forward.predictions)
+    figures_dir = config.path("figures_dir")
+    figures_dir.mkdir(parents=True, exist_ok=True)
+    _plot_equity(walk_forward.predictions, config, figures_dir / "equity_curve.png")
+    _plot_calibration(walk_forward.predictions, figures_dir / "calibration.png")
+
+    tracking = None
+    if track:
+        from vnindex_forecast.tracking.mlflow import track_training
+
+        tracking = track_training(
+            config,
+            artifact=artifact,
+            metrics=metrics,
+            feature_names=names,
+            input_example=labelled[names].tail(2),
+        )
+        metrics["tracking"] = tracking
+        artifact.metadata["mlflow"] = tracking
+        (artifact.directory / "metadata.json").write_text(
+            json.dumps(artifact.metadata, indent=2), encoding="utf-8"
+        )
+        (config.path("reports_dir") / "metrics.json").write_text(
+            json.dumps(metrics, indent=2), encoding="utf-8"
+        )
+
+    return TrainResult(
+        artifact=artifact,
+        metrics=metrics,
+        predictions=walk_forward.predictions,
+        tracking=tracking,
+    )

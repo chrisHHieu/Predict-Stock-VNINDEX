@@ -1,0 +1,118 @@
+schema: '2.0'
+stages:
+  fetch:
+    cmd: python -m vnindex_forecast --config configs/full.yaml fetch
+    deps:
+    - path: configs/full.yaml
+      hash: md5
+      md5: 1f174ac130ec51fa78acc6b5d69a1af4
+      size: 2660
+    - path: src/vnindex_forecast/data/fetch.py
+      hash: md5
+      md5: 53a21b48c2d2e3a49e99bdef411e673c
+      size: 13374
+    outs:
+    - path: data/raw/manifest.json
+      hash: md5
+      md5: 74f986788e9379cdabbf089e2820f8dd
+      size: 1452
+  validate:
+    cmd: python -m vnindex_forecast --config configs/full.yaml validate
+    deps:
+    - path: configs/full.yaml
+      hash: md5
+      md5: 1f174ac130ec51fa78acc6b5d69a1af4
+      size: 2660
+    - path: data/raw/vnindex_daily.json
+      hash: md5
+      md5: 8a28f55e0014c7f10abc0bf90b5b044a
+      size: 117949
+    - path: src/vnindex_forecast/data/contracts.py
+      hash: md5
+      md5: 2768be1df694f9a01323be28ea456624
+      size: 3356
+    - path: src/vnindex_forecast/data/validate.py
+      hash: md5
+      md5: 9c4e194ed0ba91ad2ef1b6a8339a4f1b
+      size: 6318
+  features:
+    cmd: python -m vnindex_forecast --config configs/full.yaml features
+    deps:
+    - path: configs/full.yaml
+      hash: md5
+      md5: 1f174ac130ec51fa78acc6b5d69a1af4
+      size: 2660
+    - path: data/raw/vnindex_daily.json
+      hash: md5
+      md5: 8a28f55e0014c7f10abc0bf90b5b044a
+      size: 117949
+    - path: src/vnindex_forecast/features/build.py
+      hash: md5
+      md5: c43dd276df7020cd0a41fecb8709c9d6
+      size: 8042
+    outs:
+    - path: data/processed/features.csv
+      hash: md5
+      md5: 5c5adde7b77f865e31e4a62ecbca4c64
+      size: 597156
+    - path: data/processed/vnindex_daily.csv
+      hash: md5
+      md5: 3f772338dd59100aa1ef01fabcbf8f24
+      size: 157748
+  train:
+    cmd: python -m vnindex_forecast --config configs/full.yaml train --track
+    deps:
+    - path: configs/full.yaml
+      hash: md5
+      md5: 1f174ac130ec51fa78acc6b5d69a1af4
+      size: 2660
+    - path: data/processed/features.csv
+      hash: md5
+      md5: 5c5adde7b77f865e31e4a62ecbca4c64
+      size: 597156
+    - path: src/vnindex_forecast/models/conformal.py
+      hash: md5
+      md5: 43e708f89228d3e8d28318e8bdb5559d
+      size: 10250
+    - path: src/vnindex_forecast/models/factory.py
+      hash: md5
+      md5: 194f8489da2bc5d38d30e31ae8a5a202
+      size: 4079
+    - path: src/vnindex_forecast/models/train.py
+      hash: md5
+      md5: 690991db7f285f13b29b30fcd8846885
+      size: 6404
+    - path: src/vnindex_forecast/tracking/mlflow.py
+      hash: md5
+      md5: d2af72b82ba4fc3126d50e8d3d2a8d73
+      size: 7544
+    outs:
+    - path: models/lightgbm
+      hash: md5
+      md5: 3e5ddf6b2e66064a70d3be303b45cd0d.dir
+      size: 2579625
+      nfiles: 6
+  evaluate:
+    cmd: python -m vnindex_forecast --config configs/full.yaml evaluate
+    deps:
+    - path: configs/full.yaml
+      hash: md5
+      md5: 1f174ac130ec51fa78acc6b5d69a1af4
+      size: 2660
+    - path: data/processed/features.csv
+      hash: md5
+      md5: 5c5adde7b77f865e31e4a62ecbca4c64
+      size: 597156
+    - path: models/lightgbm
+      hash: md5
+      md5: 3e5ddf6b2e66064a70d3be303b45cd0d.dir
+      size: 2579625
+      nfiles: 6
+    - path: src/vnindex_forecast/models/chronos.py
+      hash: md5
+      md5: 6e10de58c25dd43c6012b7fa9df5b1d1
+      size: 8565
+    - path: src/vnindex_forecast/models/evaluate.py
+      hash: md5
+      md5: 14dd47a08fea73b12cdaf64e1783a9ac
+      size: 33488

@@ -53,6 +53,8 @@ def test_train_is_reproducible_and_registers_artifact(prices, config):
     assert artifact.version == second.artifact.version
     assert artifact.threshold == second.artifact.threshold
     assert set(artifact.payload["feature_names"]) == set(metadata["features"])
+    assert artifact.payload["conformal_interval"].coverage == 0.8
+    assert metadata["conformal"]["calibration_rows"] > 0
 
 
 def test_evaluate_writes_metrics_and_figures(prices, config):
@@ -72,3 +74,12 @@ def test_evaluate_writes_metrics_and_figures(prices, config):
 
     figures = sorted(path.name for path in config.path("figures_dir").glob("*.png"))
     assert figures == ["calibration.png", "equity_curve.png", "feature_importance.png"]
+
+    assert len(metrics["method_comparison"]) == 4
+    methods = {item["method"]: item for item in metrics["method_comparison"]}
+    assert set(methods) == {"naive_persistence", "logistic", "lightgbm", "chronos2_zero_shot"}
+    assert methods["lightgbm"]["coverage_80"] is not None
+    assert metrics["chronos"]["status"] == "skipped"
+    assert 0.0 <= metrics["conformal"]["walk_forward"]["coverage"] <= 1.0
+    assert (reports / "method_comparison.json").exists()
+    assert (reports / "confusion.json").exists()

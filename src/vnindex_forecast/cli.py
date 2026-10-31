@@ -16,7 +16,7 @@ from vnindex_forecast.config import AppConfig, load_config, set_seed
 from vnindex_forecast.data.fetch import FetchError, fetch
 from vnindex_forecast.data.validate import format_report, load_processed, run_validate
 from vnindex_forecast.features.build import feature_columns, features_path, load_or_build_features
-from vnindex_forecast.models.evaluate import evaluate, format_metrics
+from vnindex_forecast.models.evaluate import evaluate, format_comparison, format_metrics
 from vnindex_forecast.models.train import train
 from vnindex_forecast.monitor.drift import format_report as format_drift
 from vnindex_forecast.monitor.drift import run_drift
@@ -44,10 +44,22 @@ def build_parser() -> argparse.ArgumentParser:
     train_parser.add_argument(
         "--rebuild-features", action="store_true", help="recompute features before training"
     )
+    train_parser.add_argument(
+        "--track", action="store_true", help="log the run to MLflow and the model registry"
+    )
 
     sub.add_parser("evaluate", help="score the latest artifact and write reports")
 
-    sub.add_parser("drift", help="feature drift against the training reference")
+    drift_parser = sub.add_parser("drift", help="feature drift against the training reference")
+    drift_parser.add_argument(
+        "--evidently", action="store_true", help="also write the Evidently HTML/JSON report"
+    )
+
+    tune_parser = sub.add_parser("tune", help="Optuna search inside the initial train window")
+    tune_parser.add_argument("--trials", type=int, default=None, help="number of Optuna trials")
+    tune_parser.add_argument(
+        "--output", default=None, help="output YAML (default: configs/tuned.yaml)"
+    )
 
     serve_parser = sub.add_parser("serve", help="run the FastAPI service")
     serve_parser.add_argument("--host", default=None)
@@ -91,12 +103,20 @@ def _cmd_features(config: AppConfig, args: argparse.Namespace) -> int:
 
 def _cmd_train(config: AppConfig, args: argparse.Namespace) -> int:
     started = time.perf_counter()
-    result = train(config, rebuild_features=args.rebuild_features)
+    result = train(config, rebuild_features=args.rebuild_features, track=args.track)
     print(format_metrics(result.metrics))
     print("")
     print(f"artifact        {result.artifact.directory}")
     print(f"version         {result.artifact.version}")
     print(f"threshold       {result.artifact.threshold:.4f}")
+    if result.tracking:
+        print(f"mlflow run      {result.tracking.get('run_id')}")
+        print(
+            f"registry        {result.tracking.get('model_name')}"
+            f" v{result.tracking.get('model_version')} @{result.tracking.get('alias')}"
+        )
+        if result.tracking.get("status") != "ok":
+            print(f"tracking note   {result.tracking.get('reason')}")
     print(f"elapsed         {time.perf_counter() - started:.1f}s")
     return 0
 
@@ -105,6 +125,35 @@ def _cmd_evaluate(config: AppConfig, args: argparse.Namespace) -> int:
     started = time.perf_counter()
     metrics = evaluate(config)
     print(format_metrics(metrics))
+    print("")
+    print(
+        format_comparison(
+            {
+                "methods": metrics["method_comparison"],
+                "protocol": metrics["method_protocol"],
+            }
+        )
+    )
+    print("")
+    conformal = metrics.get("conformal", {}).get("walk_forward") or {}
+    print(
+        f"conformal 80%   walk-forward coverage {conformal.get('coverage')} "
+        f"on {conformal.get('rows')} rows, width {conformal.get('average_width')}"
+    )
+    holdout = metrics.get("conformal", {}).get("holdout") or {}
+    if holdout:
+        print(
+            f"conformal 80%   holdout coverage {holdout.get('coverage')} "
+            f"on {holdout.get('rows')} rows"
+        )
+    chronos = metrics.get("chronos", {})
+    if chronos.get("status") == "ok":
+        print(
+            f"chronos         {chronos['inference_seconds']}s inference, "
+            f"{chronos['per_point_ms']} ms/point, load {chronos['load_seconds']}s"
+        )
+    else:
+        print(f"chronos         {chronos.get('status')}: {chronos.get('reason')}")
     print("")
     print(f"metrics         {config.path('reports_dir') / 'metrics.json'}")
     print(f"figures         {metrics.get('_figure_dir')}")
@@ -117,6 +166,33 @@ def _cmd_drift(config: AppConfig, args: argparse.Namespace) -> int:
     print(format_drift(report))
     print("")
     print(f"report          {config.path('reports_dir') / 'drift.json'}")
+    if args.evidently:
+        from vnindex_forecast.monitor.evidently_report import (
+            format_report as format_evidently,
+        )
+        from vnindex_forecast.monitor.evidently_report import run_evidently
+
+        summary = run_evidently(config)
+        print("")
+        print(format_evidently(summary))
+    return 0
+
+
+def _cmd_tune(config: AppConfig, args: argparse.Namespace) -> int:
+    from vnindex_forecast.tuning.search import tune
+
+    started = time.perf_counter()
+    result = tune(config, trials=args.trials, output=args.output)
+    print(f"trials          {result.trials} ({result.pruned} pruned)")
+    print(f"best log-loss   {result.best_value:.6f}")
+    print(f"best params     {result.best_params}")
+    for window in result.windows:
+        print(
+            f"window          {window['valid_start']} -> {window['valid_end']} "
+            f"(train {window['train_rows']}, valid {window['valid_rows']})"
+        )
+    print(f"output          {result.output_path}")
+    print(f"elapsed         {time.perf_counter() - started:.1f}s")
     return 0
 
 
@@ -139,6 +215,7 @@ HANDLERS = {
     "train": _cmd_train,
     "evaluate": _cmd_evaluate,
     "drift": _cmd_drift,
+    "tune": _cmd_tune,
     "serve": _cmd_serve,
 }
 

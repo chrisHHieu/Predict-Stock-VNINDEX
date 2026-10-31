@@ -1,0 +1,50 @@
+# Reproducible pipeline. Raw data is tracked with a DVC pointer
+# (data/raw/vnindex_daily.json.dvc); CSV files are cached, never committed.
+stages:
+  fetch:
+    cmd: python -m vnindex_forecast --config configs/full.yaml fetch
+    deps:
+      - src/vnindex_forecast/data/fetch.py
+      - configs/full.yaml
+    outs:
+      - data/raw/manifest.json
+
+  validate:
+    cmd: python -m vnindex_forecast --config configs/full.yaml validate
+    deps:
+      - data/raw/vnindex_daily.json
+      - src/vnindex_forecast/data/validate.py
+      - src/vnindex_forecast/data/contracts.py
+      - configs/full.yaml
+
+  features:
+    cmd: python -m vnindex_forecast --config configs/full.yaml features
+    deps:
+      - data/raw/vnindex_daily.json
+      - src/vnindex_forecast/features/build.py
+      - configs/full.yaml
+    outs:
+      - data/processed/vnindex_daily.csv
+      - data/processed/features.csv
+
+  train:
+    cmd: python -m vnindex_forecast --config configs/full.yaml train --track
+    deps:
+      - data/processed/features.csv
+      - src/vnindex_forecast/models/train.py
+      - src/vnindex_forecast/models/factory.py
+      - src/vnindex_forecast/models/conformal.py
+      - src/vnindex_forecast/tracking/mlflow.py
+      - configs/full.yaml
+    outs:
+      - models/lightgbm
+
+  evaluate:
+    cmd: python -m vnindex_forecast --config configs/full.yaml evaluate
+    always_changed: true
+    deps:
+      - models/lightgbm
+      - data/processed/features.csv
+      - src/vnindex_forecast/models/evaluate.py
+      - src/vnindex_forecast/models/chronos.py
+      - configs/full.yaml

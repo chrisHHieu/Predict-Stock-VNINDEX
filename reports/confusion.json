@@ -1,0 +1,16 @@
+{
+  "fixed_0_5": {
+    "threshold": 0.5,
+    "true_positive": 691,
+    "false_positive": 530,
+    "true_negative": 225,
+    "false_negative": 285
+  },
+  "served": {
+    "threshold": 0.57,
+    "true_positive": 549,
+    "false_positive": 414,
+    "true_negative": 341,
+    "false_negative": 427
+  }
+}

@@ -18,6 +18,7 @@ from vnindex_forecast import __version__
 from vnindex_forecast.config import AppConfig, load_config
 from vnindex_forecast.features.build import build_feature_frame_from_bars
 from vnindex_forecast.models import registry
+from vnindex_forecast.models.explain import top_reasons
 
 
 class Bar(BaseModel):
@@ -40,11 +41,14 @@ class BatchRequest(BaseModel):
 class Prediction(BaseModel):
     as_of: str
     probability_up: float
+    p_up: float
     predicted_next_return: float
     decision: str
     threshold: float
     model_version: str
     bars_used: int
+    interval_80: dict[str, Any] | None = None
+    top_reasons: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class BatchResponse(BaseModel):
@@ -69,14 +73,36 @@ def _predict_one(artifact: registry.Artifact, config: AppConfig, bars: list[Bar]
     probability = float(payload["classifier"].predict_proba(latest[names])[0, 1])
     predicted_return = float(payload["regressor"].predict(latest[names])[0])
     threshold = float(payload["threshold"])
+
+    interval = None
+    conformal = payload.get("conformal_interval")
+    if conformal is not None:
+        bounds = conformal.predict(latest, names).iloc[0]
+        interval = {
+            "low": round(float(bounds["lower"]), 6),
+            "high": round(float(bounds["upper"]), 6),
+            "coverage": float(conformal.coverage),
+            "target": "next_session_log_return",
+            "method": "split_conformal_cqr",
+        }
+
+    reasons: list[dict[str, Any]] = []
+    try:
+        reasons = top_reasons(payload["classifier"], latest, names)
+    except Exception:  # explanations are best effort, never a prediction failure
+        reasons = []
+
     return Prediction(
         as_of=latest["date"].iloc[0].date().isoformat(),
         probability_up=round(probability, 6),
+        p_up=round(probability, 6),
         predicted_next_return=round(predicted_return, 6),
         decision="long" if probability > threshold else "flat",
         threshold=threshold,
         model_version=artifact.version,
         bars_used=len(bars),
+        interval_80=interval,
+        top_reasons=reasons,
     )
 
 
@@ -127,6 +153,10 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         info = _artifact().as_info()
         info["feature_count"] = len(info.get("features") or [])
         return info
+
+    @application.get("/model-info")
+    def model_info_alias() -> dict[str, Any]:
+        return model_info()
 
     @application.post("/predict", response_model=Prediction)
     def predict(request: PredictRequest) -> Prediction:

@@ -67,6 +67,42 @@ class WalkForwardConfig(BaseModel):
     inner_validation_rows: int = Field(default=126, ge=20)
 
 
+class ConformalConfig(BaseModel):
+    """Split-conformal settings for the LightGBM return interval."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    alpha: float = Field(default=0.8, gt=0.5, lt=1.0)
+    calibration_rows: int = Field(default=126, ge=20)
+
+
+class TuningConfig(BaseModel):
+    """Optuna search settings.
+
+    Every validation block lives inside the *initial* training window
+    (``walk_forward.min_train_rows``), so hyper-parameter search never sees the
+    holdout or a walk-forward test row.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    trials: int = Field(default=30, ge=1)
+    blocks: int = Field(default=5, ge=1, le=10)
+    block_rows: int = Field(default=40, ge=5)
+    warmup_rows: int = Field(default=200, ge=10)
+    sampler_seed: int = Field(default=42, ge=0)
+
+
+class TrackingConfig(BaseModel):
+    """MLflow experiment, registry name and champion alias."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    experiment: str = "vnindex-direction"
+    registered_model_name: str = "vnindex_direction"
+    alias: str = "champion"
+
+
 class ModelConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -89,6 +125,23 @@ class ModelConfig(BaseModel):
         default_factory=lambda: [round(0.45 + 0.01 * i, 2) for i in range(16)]
     )
     walk_forward: WalkForwardConfig = Field(default_factory=WalkForwardConfig)
+    conformal: ConformalConfig = Field(default_factory=ConformalConfig)
+    tuning: TuningConfig = Field(default_factory=TuningConfig)
+    tracking: TrackingConfig = Field(default_factory=TrackingConfig)
+
+
+class ChronosConfig(BaseModel):
+    """Zero-shot Chronos-2 settings. Weights are downloaded, never committed."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool = True
+    model_id: str = "amazon/chronos-2"
+    context_length: int = Field(default=512, ge=64)
+    prediction_length: int = Field(default=1, ge=1)
+    batch_size: int = Field(default=32, ge=1)
+    device: str = "cpu"
+    time_budget_seconds: float = Field(default=900.0, gt=0)
 
 
 class MonitorConfig(BaseModel):
@@ -132,6 +185,7 @@ class AppConfig(BaseModel):
     model: ModelConfig = Field(default_factory=ModelConfig)
     monitor: MonitorConfig = Field(default_factory=MonitorConfig)
     serving: ServingConfig = Field(default_factory=ServingConfig)
+    chronos: ChronosConfig = Field(default_factory=ChronosConfig)
     paths: PathsConfig = Field(default_factory=PathsConfig)
     config_path: str | None = None
 

@@ -57,6 +57,32 @@ This is the expected outcome. Daily index direction is close to a random walk;
 AUC 0.51 is what noise plus a little mean reversion looks like. The value of the
 repository is the pipeline and the evaluation discipline, not alpha.
 
+### Four methods on the same 83 walk-forward points
+
+`evaluate` scores every method on the identical out-of-sample window, with the
+same 10 bps cost and the same threshold rule. Numbers below come from the run on
+2026-10-31, 1731 sessions, and are stored in `reports/metrics.json`.
+
+| Method | Accuracy | AUC | Sharpe | Net return | 80% interval coverage | Wall time |
+| --- | --- | --- | --- | --- | --- | --- |
+| Naive persistence | 0.5147 | 0.5067 | 0.064 | 6.05% | n/a | 0.0 s |
+| Logistic regression | 0.5552 | 0.5191 | 0.278 | 41.01% | n/a | 3.9 s |
+| LightGBM | 0.5292 | 0.5139 | 0.044 | 4.95% | 0.7857 | 83.5 s |
+| Chronos-2, zero shot | 0.5118 | 0.4952 | -0.229 | -20.96% | 0.7851 | 195.2 s |
+
+Chronos-2 is the current Amazon time-series foundation model, run zero shot on
+512-session contexts on CPU: 29.3 s to load, 195.2 s of inference, 112.8 ms per
+point. It loses to a plain logistic regression on every metric, and the logistic
+regression wins the comparison outright. That is reported here rather than
+tuned away: the point of adding a foundation model is to be able to say what it
+does on this data, not to assume it helps.
+
+The split-conformal interval for the next-session log return, built from the
+model's own quantiles, covers 0.7857 of walk-forward rows at a nominal 0.80
+(target 0.80), with an average width of 0.0266 log points. On the last 252
+sessions coverage drops to 0.7262, which is what a volatility regime change does
+to a conformal band calibrated before it.
+
 ![Strategy equity curve against buy and hold](reports/figures/equity_curve.png)
 
 *Long-only strategy at the served threshold, net of 10 bps per position change,
@@ -82,8 +108,21 @@ Then, in any order:
 ```bash
 python -m vnindex_forecast evaluate    # metrics.json plus figures
 python -m vnindex_forecast drift       # reports/drift.json
+python -m vnindex_forecast drift --evidently   # + reports/drift_evidently.html
 python -m vnindex_forecast serve       # http://127.0.0.1:8123/docs
 ```
+
+Hyperparameters are searched on the first 500 rows only, in expanding blocks, so
+the search never sees the out-of-sample window:
+
+```bash
+python -m vnindex_forecast tune --trials 30      # writes configs/tuned.yaml
+```
+
+Training with `--track` logs one MLflow run per method to `sqlite:///mlflow.db`,
+registers the direction model and moves the `champion` alias to the run with the
+better walk-forward accuracy. Data files are tracked with DVC (`dvc.yaml`,
+`dvc repro`); the payload itself stays out of git.
 
 `python -m pytest -q` runs the offline test suite and `python -m ruff check .`
 lints the tree. Every command accepts `--config PATH` before the subcommand.
@@ -135,6 +174,27 @@ fits the final models and writes the artifact. `evaluate` scores the latest
 artifact and writes metrics and figures. `drift` compares the last 252 sessions
 with the training reference. `serve` loads `models/latest` at startup.
 
+### What is modern in this repository
+
+The first rebuild had the right protocol and plain tooling. The current tree
+replaces the hand-written parts with the libraries a production team uses:
+
+| Concern | Library | Where |
+| --- | --- | --- |
+| Experiment tracking and registry | MLflow 3 (SQLite store, `champion` alias) | `src/vnindex_forecast/tracking/mlflow.py` |
+| Hyperparameter search | Optuna 5, TPE + MedianPruner, storage `reports/optuna.db` | `src/vnindex_forecast/tuning/search.py` |
+| Data contract | Pandera 0.35 schema | `src/vnindex_forecast/data/contracts.py` |
+| Data versioning | DVC 3 | `dvc.yaml`, `dvc.lock` |
+| Drift report | Evidently 0.7 (HTML + JSON alongside the PSI) | `src/vnindex_forecast/monitor/evidently_report.py` |
+| Interval forecasts | split conformal on the model's own quantiles | `src/vnindex_forecast/models/conformal.py` |
+| Foundation model | Chronos-2, `amazon/chronos-2`, zero shot on CPU | `src/vnindex_forecast/models/chronos.py` |
+| Feature attribution | SHAP tree values in the service response | `src/vnindex_forecast/models/explain.py` |
+
+CI runs three jobs: the core suite on every push, a `modern` job that installs
+the tracking and tuning extras but not torch, and a `deep` job that downloads
+Chronos-2 weights and only runs on `workflow_dispatch`, because a model that
+needs 29 s to load and 195 s to score does not belong in a push-triggered build.
+
 ## Model card
 
 Summary: LightGBM classifier for direction plus LightGBM regressor for the next
@@ -180,7 +240,18 @@ return, the decision at the stored threshold and the model version.
   the same 83 refits. A result that moves that much across a one-row shift in the
   evaluation grid is noise, and the repository reports the lower run.
 * Probabilities are not calibrated. The calibration plot stays between 0.40 and
-  0.60 observed while predictions range from 0.17 to 0.83.
+  0.60 observed while predictions range from 0.17 to 0.83. The conformal interval
+  does not fix that: it covers 0.7857 of walk-forward rows at a nominal 0.80, and
+  only 0.7262 on the last 252 sessions, because a band calibrated in one
+  volatility regime is too narrow in the next.
+* The foundation model is expensive and did not pay for itself. Chronos-2 needs
+  195.2 s of CPU inference for the same 1731 points that cost LightGBM 83.5 s and
+  logistic regression 3.9 s, and scores below both. It stays in the repository as
+  a measured baseline, not as the recommended model.
+* TabPFN is not included. The 3.5 release requires a Hugging Face login and
+  licence acceptance before it will download weights, and the 2.2 release pins
+  `pandas<3` and `scikit-learn<1.7`, which conflicts with the rest of the stack.
+  Downgrading the whole environment for one candidate was not worth it.
 * The threshold is selected on 126 training rows per fold, which is a very noisy
   estimate. The served threshold (0.57) was selected once on the last 252 rows and
   is not re-validated after deployment.

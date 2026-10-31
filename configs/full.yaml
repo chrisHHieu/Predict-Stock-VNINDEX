@@ -1,0 +1,114 @@
+# Full-history configuration used for the published comparison:
+# all 2,291 processed sessions, 83 walk-forward refits, Chronos-2 enabled.
+# It is a copy of base.yaml so that the reported numbers have an explicit config.
+
+# Runtime configuration for the VNINDEX forecasting pipeline.
+# Every path is resolved against the repository root unless it is absolute.
+seed: 42
+
+data:
+  symbol: VNINDEX
+  source_url: "https://dchart-api.vndirect.com.vn/dchart/history"
+  resolution: "D"
+  start_date: "2017-01-01"
+  # null means "up to today"; the fetched snapshot is cached and only
+  # refreshed when --force is passed or the start date changes.
+  end_date: null
+  chunk_years: 5
+  user_agent: "vnindex-forecast/1.0 (research; contact hoanghieu1642002@gmail.com)"
+  timeout_seconds: 30.0
+  max_retries: 3
+  request_interval_seconds: 1.0
+  min_rows: 1500
+  # Tet and other Vietnamese holidays close the exchange for up to ~10 days.
+  max_calendar_gap_days: 10
+  max_large_gaps_last_year: 6
+
+features:
+  return_lags: [1, 2, 3, 5, 10]
+  rolling_windows: [5, 20, 60]
+  rsi_window: 14
+  atr_window: 14
+  volume_window: 20
+  min_history: 60
+
+model:
+  name: "lightgbm"
+  n_estimators: 300
+  regressor_n_estimators: 200
+  learning_rate: 0.03
+  num_leaves: 15
+  min_child_samples: 40
+  subsample: 0.8
+  subsample_freq: 1
+  colsample_bytree: 0.8
+  reg_lambda: 1.0
+  max_depth: -1
+  n_jobs: -1
+  cost_bps: 10.0
+  annualization: 252
+  holdout_rows: 252
+  threshold_grid:
+    - 0.45
+    - 0.46
+    - 0.47
+    - 0.48
+    - 0.49
+    - 0.50
+    - 0.51
+    - 0.52
+    - 0.53
+    - 0.54
+    - 0.55
+    - 0.56
+    - 0.57
+    - 0.58
+    - 0.59
+    - 0.60
+  walk_forward:
+    min_train_rows: 500
+    refit_every: 21
+    inner_validation_rows: 126
+  # Split-conformal interval for the next-session log return.
+  conformal:
+    alpha: 0.8
+    calibration_rows: 126
+  # Search runs on 5 expanding blocks inside the first 500 rows only.
+  tuning:
+    trials: 30
+    blocks: 5
+    block_rows: 40
+    warmup_rows: 200
+    sampler_seed: 42
+  tracking:
+    experiment: "vnindex-direction"
+    registered_model_name: "vnindex_direction"
+    alias: "champion"
+
+chronos:
+  # Zero-shot foundation model. Weights live in the HuggingFace cache.
+  enabled: true
+  model_id: "amazon/chronos-2"
+  context_length: 512
+  prediction_length: 1
+  batch_size: 32
+  device: "cpu"
+  time_budget_seconds: 900.0
+
+monitor:
+  window_rows: 252
+  reference_fraction: 0.7
+  psi_bins: 10
+  psi_moderate: 0.10
+  psi_significant: 0.25
+
+serving:
+  host: "127.0.0.1"
+  port: 8123
+
+paths:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  models_dir: "models"
+  reports_dir: "reports"
+  figures_dir: "reports/figures"

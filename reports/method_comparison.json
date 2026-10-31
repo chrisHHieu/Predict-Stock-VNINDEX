@@ -1,0 +1,108 @@
+{
+  "protocol": {
+    "oos_rows": 1731,
+    "oos_start": "2019-11-20",
+    "oos_end": "2026-10-29",
+    "threshold": 0.5,
+    "cost_bps": 10.0,
+    "generated_at": "2026-10-31T14:28:10Z",
+    "note": "All methods use the same out-of-sample dates, a fixed 0.5 threshold and 10 bps per position change. The LightGBM row is the walk-forward classifier; its per-fold threshold path is reported separately in the strategy block."
+  },
+  "methods": [
+    {
+      "method": "naive_persistence",
+      "coverage_80": null,
+      "seconds": 0.0,
+      "accuracy": 0.5147,
+      "auc": 0.5067,
+      "brier": 0.485269,
+      "total_return": 0.060459,
+      "annualized_return": 0.008582,
+      "annualized_sharpe": 0.0641,
+      "max_drawdown": -0.434556,
+      "exposure": 0.5638,
+      "n_trades": 840
+    },
+    {
+      "method": "logistic",
+      "coverage_80": null,
+      "seconds": 3.847,
+      "accuracy": 0.5552,
+      "auc": 0.5191,
+      "brier": 0.24897,
+      "total_return": 0.410071,
+      "annualized_return": 0.0513,
+      "annualized_sharpe": 0.2775,
+      "max_drawdown": -0.390426,
+      "exposure": 0.855,
+      "n_trades": 313
+    },
+    {
+      "method": "lightgbm",
+      "model_detail": "300 trees, 18 features",
+      "coverage_80": 0.7857,
+      "seconds": 83.529,
+      "accuracy": 0.5292,
+      "auc": 0.5139,
+      "brier": 0.266185,
+      "total_return": 0.049505,
+      "annualized_return": 0.007059,
+      "annualized_sharpe": 0.0436,
+      "max_drawdown": -0.364277,
+      "exposure": 0.7054,
+      "n_trades": 624
+    },
+    {
+      "method": "chronos2_zero_shot",
+      "model_detail": "amazon/chronos-2, 512-bar context",
+      "coverage_80": 0.7851,
+      "seconds": 195.248,
+      "accuracy": 0.5118,
+      "auc": 0.4952,
+      "brier": 0.263993,
+      "total_return": -0.209599,
+      "annualized_return": -0.033663,
+      "annualized_sharpe": -0.2292,
+      "max_drawdown": -0.367478,
+      "exposure": 0.6522,
+      "n_trades": 400
+    }
+  ],
+  "conformal": {
+    "walk_forward": {
+      "rows": 1731,
+      "folds": 83,
+      "coverage": 0.7857,
+      "target_coverage": 0.8,
+      "average_width": 0.026583,
+      "pinball_loss": {
+        "0.1": 0.00245106,
+        "0.5": 0.00435179,
+        "0.9": 0.00189597
+      },
+      "elapsed_seconds": 77.127
+    },
+    "holdout": {
+      "rows": 252,
+      "folds": 1,
+      "coverage": 0.7262,
+      "target_coverage": 0.8,
+      "average_width": 0.024884,
+      "pinball_loss": {
+        "0.1": 0.00211942,
+        "0.5": 0.00455255,
+        "0.9": 0.00206694
+      },
+      "elapsed_seconds": 0.0
+    }
+  },
+  "chronos": {
+    "status": "ok",
+    "model_id": "amazon/chronos-2",
+    "context_length": 512,
+    "points": 1731,
+    "load_seconds": 29.254,
+    "inference_seconds": 195.248,
+    "per_point_ms": 112.79
+  }
+}

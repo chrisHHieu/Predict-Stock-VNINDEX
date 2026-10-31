@@ -65,6 +65,31 @@ model:
     min_train_rows: 500
     refit_every: 21
     inner_validation_rows: 126
+  # Split-conformal interval for the next-session log return.
+  conformal:
+    alpha: 0.8
+    calibration_rows: 126
+  # Search runs on 5 expanding blocks inside the first 500 rows only.
+  tuning:
+    trials: 30
+    blocks: 5
+    block_rows: 40
+    warmup_rows: 200
+    sampler_seed: 42
+  tracking:
+    experiment: "vnindex-direction"
+    registered_model_name: "vnindex_direction"
+    alias: "champion"
+
+chronos:
+  # Zero-shot foundation model. Weights live in the HuggingFace cache.
+  enabled: true
+  model_id: "amazon/chronos-2"
+  context_length: 512
+  prediction_length: 1
+  batch_size: 32
+  device: "cpu"
+  time_budget_seconds: 900.0
 
 monitor:
   window_rows: 252

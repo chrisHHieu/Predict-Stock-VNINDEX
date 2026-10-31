@@ -8,6 +8,7 @@ monkeypatch it to prove the check reacts.
 from __future__ import annotations
 
 import dataclasses
+import importlib.util
 from typing import Any
 
 import pandas as pd
@@ -139,7 +140,18 @@ def validate_frame(
         future = int((date_series > now + pd.Timedelta(days=1)).sum())
         checks.append(_check("no_future_dates", future == 0, f"rows in the future={future}"))
 
+    checks.append(_pandera_check(frame))
     return checks
+
+
+def _pandera_check(frame: pd.DataFrame) -> Check:
+    """Declarative Pandera schema, skipped softly when the extra is absent."""
+    if importlib.util.find_spec("pandera") is None:
+        return _check("pandera_raw", True, "skipped: pandera is not installed")
+    from vnindex_forecast.data.contracts import validate_raw
+
+    ok, detail = validate_raw(frame)
+    return _check("pandera_raw", ok, detail)
 
 
 def load_processed(config: AppConfig) -> pd.DataFrame:

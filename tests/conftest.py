@@ -57,6 +57,7 @@ def make_config(tmp_path: Path, **overrides: Any) -> AppConfig:
                 "inner_validation_rows": 30,
             },
         },
+        "chronos": {"enabled": False},
         "paths": {
             "raw_dir": str(tmp_path / "data" / "raw"),
             "processed_dir": str(tmp_path / "data" / "processed"),

@@ -49,6 +49,7 @@ class Artifact:
             "data_sha256",
             "features",
             "window_bars",
+            "mlflow",
         )
         return {key: self.metadata.get(key) for key in keys}
 
