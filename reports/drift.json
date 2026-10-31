@@ -1,0 +1,189 @@
+{
+  "generated_at": "2026-10-31T12:16:31Z",
+  "method": "population stability index, quantile bins from the reference slice",
+  "note": "PSI is unbounded. When a reference bin receives no current observations the value mostly measures separation, not a calibrated distance; empty_current_bins says how many bins were empty.",
+  "thresholds": {
+    "moderate": 0.1,
+    "significant": 0.25
+  },
+  "reference": {
+    "rows": 1561,
+    "start": "2017-11-16",
+    "end": "2024-02-21"
+  },
+  "current": {
+    "rows": 252,
+    "start": "2025-10-24",
+    "end": "2026-10-29"
+  },
+  "summary": {
+    "stable": 7,
+    "moderate": 7,
+    "significant": 4,
+    "max_psi": 3.6012
+  },
+  "features": [
+    {
+      "feature": "atr_14_norm",
+      "psi": 3.6012,
+      "status": "significant",
+      "empty_current_bins": 4,
+      "mean_reference": 0.01527,
+      "mean_current": 0.018487,
+      "standardized_mean_shift": 0.5194
+    },
+    {
+      "feature": "ret_std_60",
+      "psi": 2.4458,
+      "status": "significant",
+      "empty_current_bins": 3,
+      "mean_reference": 0.011827,
+      "mean_current": 0.012824,
+      "standardized_mean_shift": 0.2288
+    },
+    {
+      "feature": "ret_mean_60",
+      "psi": 1.5129,
+      "status": "significant",
+      "empty_current_bins": 2,
+      "mean_reference": 0.000217,
+      "mean_current": 0.000276,
+      "standardized_mean_shift": 0.0309
+    },
+    {
+      "feature": "ret_std_20",
+      "psi": 1.0077,
+      "status": "significant",
+      "empty_current_bins": 1,
+      "mean_reference": 0.011088,
+      "mean_current": 0.011839,
+      "standardized_mean_shift": 0.1386
+    },
+    {
+      "feature": "ret_std_5",
+      "psi": 0.2196,
+      "status": "moderate",
+      "empty_current_bins": 0,
+      "mean_reference": 0.009247,
+      "mean_current": 0.009664,
+      "standardized_mean_shift": 0.0665
+    },
+    {
+      "feature": "ret_mean_5",
+      "psi": 0.1988,
+      "status": "moderate",
+      "empty_current_bins": 0,
+      "mean_reference": 0.000213,
+      "mean_current": 0.000197,
+      "standardized_mean_shift": -0.0027
+    },
+    {
+      "feature": "close_ma60_ratio",
+      "psi": 0.194,
+      "status": "moderate",
+      "empty_current_bins": 0,
+      "mean_reference": 0.007482,
+      "mean_current": 0.005991,
+      "standardized_mean_shift": -0.0232
+    },
+    {
+      "feature": "rsi_14",
+      "psi": 0.1813,
+      "status": "moderate",
+      "empty_current_bins": 0,
+      "mean_reference": 53.607453,
+      "mean_current": 50.848539,
+      "standardized_mean_shift": -0.1915
+    },
+    {
+      "feature": "close_ma20_ratio",
+      "psi": 0.1411,
+      "status": "moderate",
+      "empty_current_bins": 0,
+      "mean_reference": 0.002341,
+      "mean_current": 0.001002,
+      "standardized_mean_shift": -0.038
+    },
+    {
+      "feature": "close_ma5_ratio",
+      "psi": 0.1315,
+      "status": "moderate",
+      "empty_current_bins": 0,
+      "mean_reference": 0.000465,
+      "mean_current": 0.000435,
+      "standardized_mean_shift": -0.002
+    },
+    {
+      "feature": "vol_z_20",
+      "psi": 0.1041,
+      "status": "moderate",
+      "empty_current_bins": 0,
+      "mean_reference": 0.099432,
+      "mean_current": -0.11178,
+      "standardized_mean_shift": -0.1864
+    },
+    {
+      "feature": "ret_mean_20",
+      "psi": 0.0965,
+      "status": "stable",
+      "empty_current_bins": 0,
+      "mean_reference": 0.000217,
+      "mean_current": 9.2e-05,
+      "standardized_mean_shift": -0.039
+    },
+    {
+      "feature": "ret_lag_10",
+      "psi": 0.0933,
+      "status": "stable",
+      "empty_current_bins": 0,
+      "mean_reference": 0.000219,
+      "mean_current": -9.6e-05,
+      "standardized_mean_shift": -0.0247
+    },
+    {
+      "feature": "ret_lag_3",
+      "psi": 0.0895,
+      "status": "stable",
+      "empty_current_bins": 0,
+      "mean_reference": 0.000212,
+      "mean_current": 0.000228,
+      "standardized_mean_shift": 0.0012
+    },
+    {
+      "feature": "ret_lag_5",
+      "psi": 0.0886,
+      "status": "stable",
+      "empty_current_bins": 0,
+      "mean_reference": 0.000214,
+      "mean_current": 9.7e-05,
+      "standardized_mean_shift": -0.0092
+    },
+    {
+      "feature": "ret_lag_1",
+      "psi": 0.0878,
+      "status": "stable",
+      "empty_current_bins": 0,
+      "mean_reference": 0.000213,
+      "mean_current": 0.000158,
+      "standardized_mean_shift": -0.0043
+    },
+    {
+      "feature": "ret_lag_2",
+      "psi": 0.0871,
+      "status": "stable",
+      "empty_current_bins": 0,
+      "mean_reference": 0.000214,
+      "mean_current": 0.000203,
+      "standardized_mean_shift": -0.0008
+    },
+    {
+      "feature": "dow",
+      "psi": 0.0002,
+      "status": "stable",
+      "empty_current_bins": 0,
+      "mean_reference": 2.013453,
+      "mean_current": 1.996032,
+      "standardized_mean_shift": -0.0124
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "data": {
+    "oos_rows": 1731,
+    "oos_start": "2019-11-20",
+    "oos_end": "2026-10-29",
+    "up_share": 0.5638,
+    "cost_bps": 10.0
+  },
+  "direction": {
+    "accuracy": 0.5292,
+    "auc": 0.5139,
+    "brier": 0.266185,
+    "base_rate": 0.5638
+  },
+  "baselines": {
+    "majority_accuracy": 0.5638,
+    "constant_brier": 0.246264,
+    "naive_zero_mae": 0.00869,
+    "buy_and_hold_total_return": 0.740645
+  },
+  "return_regression": {
+    "mae_model": 0.008833,
+    "mae_naive_zero": 0.00869,
+    "rmse_model": 0.012886
+  },
+  "strategy": {
+    "total_return": 0.004341,
+    "annualized_return": 0.000631,
+    "annualized_sharpe": 0.0041,
+    "max_drawdown": -0.340178,
+    "hit_rate": 0.5659,
+    "exposure": 0.6534,
+    "n_trades": 640
+  },
+  "strategy_fixed_0_5": {
+    "total_return": 0.049505,
+    "annualized_return": 0.007059,
+    "annualized_sharpe": 0.0436,
+    "max_drawdown": -0.364277,
+    "exposure": 0.7054
+  },
+  "buy_and_hold": {
+    "total_return": 0.740645,
+    "annualized_return": 0.084034,
+    "annualized_sharpe": 0.3973,
+    "max_drawdown": -0.403429,
+    "hit_rate": 0.5638
+  },
+  "threshold": {
+    "selected_median": 0.52,
+    "min": 0.45,
+    "max": 0.6
+  },
+  "model_version": "20261031T122357Z",
+  "generated_at": "2026-10-31T12:23:57Z",
+  "served_threshold": 0.57,
+  "walk_forward": {
+    "folds": 83,
+    "min_train_rows": 500,
+    "refit_every": 21,
+    "threshold_grid": [
+      0.6,
+      0.52,
+      0.53
+    ],
+    "predictions_reused": false
+  }
+}

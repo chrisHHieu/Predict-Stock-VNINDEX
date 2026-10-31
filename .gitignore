@@ -1,0 +1,38 @@
+# Data is fetched, never committed
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# Reports and model artifacts are produced by the pipeline.
+# Metrics, drift and figures are committed so the README numbers can be checked.
+reports/*
+!reports/.gitkeep
+!reports/metrics.json
+!reports/drift.json
+!reports/figures/
+reports/figures/*
+!reports/figures/*.png
+models/
+catboost_info/
+lightgbm_log.txt
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
