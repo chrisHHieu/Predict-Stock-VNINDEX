@@ -13,7 +13,7 @@ reports/*
 !reports/figures/
 reports/figures/*
 !reports/figures/*.png
-models/
+/models/
 catboost_info/
 lightgbm_log.txt
 
