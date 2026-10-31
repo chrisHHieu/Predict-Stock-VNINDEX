@@ -4,7 +4,7 @@
 
 | Field | Value |
 | --- | --- |
-| Model artifact | `models/lightgbm/20261031T121542Z` (`models/latest`) |
+| Model artifact | `models/lightgbm/20261031T140053Z` (`models/latest`) |
 | Model type | LightGBM classifier (direction) and LightGBM regressor (next-session log return) |
 | Task | Binary up/down for session t+1, plus a regression variant of the next-session log return |
 | Input | 18 numeric features built from daily OHLCV bars, at least 60 bars |
@@ -103,8 +103,13 @@ refits, 10 bps per position change.
 | --- | --- | --- | --- | --- | --- | --- |
 | Naive persistence | 0.5147 | 0.5067 | 0.064 | 6.05% | n/a | 0.0 s |
 | Logistic regression | 0.5552 | 0.5191 | 0.278 | 41.01% | n/a | 3.9 s |
-| LightGBM (served) | 0.5292 | 0.5139 | 0.044 | 4.95% | 0.7857 | 83.5 s |
+| LightGBM, fixed 0.5 threshold | 0.5292 | 0.5139 | 0.044 | 4.95% | 0.7857 | 83.5 s |
 | Chronos-2, zero shot | 0.5118 | 0.4952 | -0.229 | -20.96% | 0.7851 | 195.2 s |
+
+The fixed 0.5 row is not the deployed policy: the served classifier uses the
+per-fold threshold path stored in the artifact, which returns 0.43% at a 0.004
+Sharpe, the line in the strategy block above. The 4.95% here is the same walk-forward
+classifier forced to trade at 0.5, kept so all four methods share one threshold.
 
 The foundation model is the most expensive method and the worst of the four on
 this data. It was left in the comparison exactly as measured. The logistic
