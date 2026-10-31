@@ -62,3 +62,6 @@ exclude = ["legacy", "data", "reports", "models", ".venv"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["vnindex_forecast"]
